@@ -206,15 +206,18 @@ impl Transaction {
                 rlp_opt(&mut rlp, &self.is_system_tx);
                 rlp.append(&self.input.as_ref());
             }
-            // L1 Block Hashes
+             // L1 Block Hashes
             #[cfg(feature = "scroll")]
             Some(x) if x == U64::from(0x7D) => {
                 rlp.append(&self.nonce);
+                rlp_opt(&mut rlp, &self.gas_price);
                 rlp.append(&self.gas);
                 rlp_opt(&mut rlp, &self.to);
                 rlp.append(&self.value);
                 rlp.append(&self.input.as_ref());
-                rlp.append(&self.from);
+                rlp.append(&self.v);
+                rlp.append(&self.r);
+                rlp.append(&self.s);
             }
             // L1 Message
             #[cfg(feature = "scroll")]
@@ -368,16 +371,16 @@ impl Transaction {
     ) -> Result<(), DecoderError> {
         self.nonce = rlp.val_at(*offset)?;
         *offset += 1;
+        self.gas_price = Some(rlp.val_at(*offset)?);
+        *offset += 1;
         self.gas = rlp.val_at(*offset)?;
         *offset += 1;
-        self.to = Some(rlp.val_at(*offset)?);
-        *offset += 1;
+
+        self.to = decode_to(rlp, offset)?;
         self.value = rlp.val_at(*offset)?;
         *offset += 1;
         let input = rlp::Rlp::new(rlp.at(*offset)?.as_raw()).data()?;
         self.input = Bytes::from(input.to_vec());
-        *offset += 1;
-        self.from = rlp.val_at(*offset)?;
         *offset += 1;
         Ok(())
     }
