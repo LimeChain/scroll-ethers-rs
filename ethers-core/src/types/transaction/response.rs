@@ -492,7 +492,7 @@ impl Decodable for Transaction {
                 #[cfg(feature = "scroll")]
                 0x7D => {
                     txn.decode_base_l1_block_hashes(&rest, &mut offset)?;
-                    txn.transaction_type = Some(126u64.into())
+                    txn.transaction_type = Some(125u64.into())
                 }
                 #[cfg(feature = "scroll")]
                 0x7E => {
