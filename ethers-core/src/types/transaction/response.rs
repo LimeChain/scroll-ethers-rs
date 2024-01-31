@@ -13,6 +13,8 @@ use crate::{
 use rlp::{Decodable, DecoderError, RlpStream};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
+#[cfg(feature = "scroll")]
+use std::str::FromStr;
 
 /// Details of a signed transaction
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
@@ -135,6 +137,15 @@ pub struct Transaction {
     #[cfg(not(any(feature = "celo", feature = "optimism")))]
     #[serde(flatten)]
     pub other: crate::types::OtherFields,
+
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "first_applied_l1_block")]
+    pub first_applied_l1_block: Option<U64>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "lastAppliedL1Block")]
+    pub last_applied_l1_block: Option<U64>,
+
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "l1BlockRangeHash")]
+    pub l1_block_range_hash: Option<H256>,
 }
 
 impl Transaction {
@@ -209,15 +220,12 @@ impl Transaction {
              // L1 Block Hashes
             #[cfg(feature = "scroll")]
             Some(x) if x == U64::from(0x7D) => {
-                rlp.append(&self.nonce);
-                rlp_opt(&mut rlp, &self.gas_price);
-                rlp.append(&self.gas);
+                rlp.append(&U64::from(0xA6));
+                rlp.append(&U64::from(0xA7));
+                rlp.append(&H256::from_str("0xb847826b8109c7103096455b71879450d0e1092676fba38b55b44123426601f0").unwrap());
                 rlp_opt(&mut rlp, &self.to);
-                rlp.append(&self.value);
                 rlp.append(&self.input.as_ref());
-                rlp.append(&self.v);
-                rlp.append(&self.r);
-                rlp.append(&self.s);
+                rlp.append(&self.from);
             }
             // L1 Message
             #[cfg(feature = "scroll")]
@@ -369,18 +377,18 @@ impl Transaction {
         rlp: &rlp::Rlp,
         offset: &mut usize,
     ) -> Result<(), DecoderError> {
-        self.nonce = rlp.val_at(*offset)?;
+        self.first_applied_l1_block = Some(rlp.val_at(*offset)?);
         *offset += 1;
-        self.gas_price = Some(rlp.val_at(*offset)?);
+        self.last_applied_l1_block = Some(rlp.val_at(*offset)?);
         *offset += 1;
-        self.gas = rlp.val_at(*offset)?;
+        self.l1_block_range_hash = Some(rlp.val_at(*offset)?);
         *offset += 1;
-
-        self.to = decode_to(rlp, offset)?;
-        self.value = rlp.val_at(*offset)?;
+        self.to = Some(rlp.val_at(*offset)?);
         *offset += 1;
         let input = rlp::Rlp::new(rlp.at(*offset)?.as_raw()).data()?;
         self.input = Bytes::from(input.to_vec());
+        *offset += 1;
+        self.from = rlp.val_at(*offset)?;
         *offset += 1;
         Ok(())
     }
