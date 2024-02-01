@@ -147,8 +147,8 @@ pub struct Transaction {
     pub last_applied_l1_block: Option<U64>,
 
     #[cfg(feature = "scroll")]
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "l1BlockRangeHash")]
-    pub l1_block_range_hash: Option<H256>,
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "blockRangeHash")]
+    pub block_range_hash: Option<Vec<H256>>,
 }
 
 impl Transaction {
@@ -225,7 +225,12 @@ impl Transaction {
             Some(x) if x == U64::from(0x7D) => {
                 rlp_opt(&mut rlp, &self.first_applied_l1_block);
                 rlp_opt(&mut rlp, &self.last_applied_l1_block);
-                rlp_opt(&mut rlp, &self.l1_block_range_hash);
+                if let Some(inner) = &self.block_range_hash {
+                    rlp.append_list::<H256, H256>(&inner);
+                } else {
+                    // Choice of `u8` type here is arbitrary as all empty lists are encoded the same.
+                    rlp.append_list::<H256, H256>(&[]);
+                }
                 rlp_opt(&mut rlp, &self.to);
                 rlp.append(&self.input.as_ref());
                 rlp.append(&self.from);
@@ -385,7 +390,7 @@ impl Transaction {
         *offset += 1;
         self.last_applied_l1_block = Some(rlp.val_at(*offset)?);
         *offset += 1;
-        self.l1_block_range_hash = Some(rlp.val_at(*offset)?);
+        self.block_range_hash = Some(rlp.list_at(*offset)?);
         *offset += 1;
         self.to = Some(rlp.val_at(*offset)?);
         *offset += 1;
