@@ -138,12 +138,15 @@ pub struct Transaction {
     #[serde(flatten)]
     pub other: crate::types::OtherFields,
 
-    #[serde(default, skip_serializing_if = "Option::is_none", rename = "first_applied_l1_block")]
+    #[cfg(feature = "scroll")]
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "firstAppliedL1Block")]
     pub first_applied_l1_block: Option<U64>,
 
+    #[cfg(feature = "scroll")]
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "lastAppliedL1Block")]
     pub last_applied_l1_block: Option<U64>,
 
+    #[cfg(feature = "scroll")]
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "l1BlockRangeHash")]
     pub l1_block_range_hash: Option<H256>,
 }
@@ -220,9 +223,9 @@ impl Transaction {
              // L1 Block Hashes
             #[cfg(feature = "scroll")]
             Some(x) if x == U64::from(0x7D) => {
-                rlp.append(&U64::from(0xA6));
-                rlp.append(&U64::from(0xA7));
-                rlp.append(&H256::from_str("0xb847826b8109c7103096455b71879450d0e1092676fba38b55b44123426601f0").unwrap());
+                rlp_opt(&mut rlp, &self.first_applied_l1_block);
+                rlp_opt(&mut rlp, &self.last_applied_l1_block);
+                rlp_opt(&mut rlp, &self.l1_block_range_hash);
                 rlp_opt(&mut rlp, &self.to);
                 rlp.append(&self.input.as_ref());
                 rlp.append(&self.from);
@@ -372,6 +375,7 @@ impl Transaction {
     
     /// Decodes fields of the type 0x7D transaction response starting at the RLP offset passed.
     /// Increments the offset for each element parsed
+    #[cfg(feature = "scroll")]
     fn decode_base_l1_block_hashes(
         &mut self,
         rlp: &rlp::Rlp,
@@ -396,6 +400,7 @@ impl Transaction {
     /// Decodes fields of the type 0x7E transaction response starting at the RLP offset passed.
     /// Increments the offset for each element parsed
     /// https://github.com/scroll-tech/go-ethereum/blob/b2948719ffac5e66882990b8bfee35e522d9d5f2/core/types/l1_message_tx.go#L10-L17
+    #[cfg(feature = "scroll")]
     fn decode_base_l1_msg(
         &mut self,
         rlp: &rlp::Rlp,
