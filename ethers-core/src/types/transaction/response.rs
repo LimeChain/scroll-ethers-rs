@@ -140,11 +140,11 @@ pub struct Transaction {
 
     #[cfg(feature = "scroll")]
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "firstAppliedL1Block")]
-    pub first_applied_l1_block: Option<U64>,
+    pub first_applied_l1_block: Option<U256>,
 
     #[cfg(feature = "scroll")]
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "lastAppliedL1Block")]
-    pub last_applied_l1_block: Option<U64>,
+    pub last_applied_l1_block: Option<U256>,
 
     #[cfg(feature = "scroll")]
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "blockRangeHash")]
